@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <title>liO · CSR ↔ MTB</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Bebas+Neue&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
+
+  <style>
+    :root {
+      --bg:        #0a0a0c;
+      --border:    #2a2a35;
+      --accent:    #f5c400;
+      --accent2:   #ff6b35;
+      --text:      #e8e8e0;
+      --dim:       #FF3D8B;
+      --green:     #3ddc84;
+      --red:       #ff4444;
+      --orange:    #FF3D8B;
+      --blue:      #4a9eff;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Space Mono', monospace;
+      min-height: 100vh;
+      -webkit-text-size-adjust: 100%;
+    }
+
+    .safe-area-top {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 200;
+      height: env(safe-area-inset-top, 0px);
+      background: linear-gradient(135deg,
+        #2a2a2a 0%, #1e1e1e 25%, #FF3D8B 50%, #1e1e1e 75%, #2a2a2a 100%
+      );
+      background-size: 200% 100%;
+      animation: bandeauSlide 6s linear infinite;
+    }
+    @keyframes bandeauSlide { 0% { background-position: 0% 0%; } 100% { background-position: 200% 0%; } }
+
+    header {
+      position: sticky;
+      top: env(safe-area-inset-top, 0px);
+      z-index: 100;
+      background: var(--bg);
+      border-bottom: 1px solid var(--border);
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .site-title { font-family: 'Bebas Neue', sans-serif; font-size: 32px; letter-spacing: 0.06em; color: var(--accent); line-height: 1; }
+    .site-subtitle { font-size: 10px; color: var(--dim); letter-spacing: 0.12em; text-transform: uppercase; margin-top: 2px; }
+    .clock { font-family: 'Share Tech Mono', monospace; font-size: 26px; color: var(--accent); text-shadow: 0 0 16px rgba(245,196,0,0.35); }
+
+    .tabs {
+      display: flex;
+      border-bottom: 1px solid var(--border);
+      background: var(--bg);
+      position: sticky;
+      top: calc(env(safe-area-inset-top, 0px) + 61px);
+      z-index: 99;
+    }
+    .tab-btn {
+      flex: 1; background: none; border: none;
+      border-bottom: 2px solid transparent;
+      color: var(--dim);
+      font-family: 'Space Mono', monospace; font-size: 13px; font-weight: 700;
+      letter-spacing: 0.1em; text-transform: uppercase;
+      padding: 14px 8px; cursor: pointer; transition: all 0.2s;
+      position: relative; top: 1px;
+    }
+    .tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+    main { padding: 16px; max-width: 900px; margin: 0 auto; }
+    .panel { display: none; }
+    .panel.active { display: block; }
+
+    .status-bar {
+      display: flex; align-items: flex-start;
+      justify-content: space-between; margin-bottom: 12px; gap: 10px;
+    }
+    .route-label { font-family: 'Bebas Neue', sans-serif; font-size: 20px; letter-spacing: 0.08em; color: var(--text); }
+    .route-label span { color: var(--accent); }
+    .last-update { font-size: 10px; color: var(--dim); letter-spacing: 0.06em; margin-top: 3px; }
+
+    .refresh-btn {
+      background: none; border: 1px solid var(--border); color: var(--dim);
+      font-family: 'Space Mono', monospace; font-size: 12px; padding: 8px 14px;
+      cursor: pointer; text-transform: uppercase; transition: all 0.2s;
+      display: flex; align-items: center; gap: 6px; min-height: 44px; white-space: nowrap;
+    }
+    .refresh-btn:active { border-color: var(--accent); color: var(--accent); }
+    .refresh-btn .spin { display: inline-block; }
+    .refresh-btn.loading .spin { animation: spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ─── BANDEAU DATE ─── */
+    .date-bandeau {
+      display: flex; align-items: center; justify-content: space-between;
+      background: rgba(255,61,139,0.07);
+      border: 1px solid rgba(255,61,139,0.25);
+      border-left: 3px solid var(--dim);
+      padding: 10px 14px; margin-bottom: 14px;
+    }
+    .date-bandeau-label { font-size: 9px; color: var(--dim); letter-spacing: 0.14em; text-transform: uppercase; }
+    .date-bandeau-value { font-family: 'Bebas Neue', sans-serif; font-size: 20px; color: var(--dim); letter-spacing: 0.06em; margin-top: 2px; }
+    .date-bandeau-back {
+      background: none; border: 1px solid rgba(255,61,139,0.35); color: var(--dim);
+      font-family: 'Space Mono', monospace; font-size: 10px; letter-spacing: 0.08em;
+      text-transform: uppercase; padding: 8px 12px; cursor: pointer; transition: all 0.2s; min-height: 40px;
+    }
+    .date-bandeau-back:active { background: var(--dim); color: var(--bg); }
+
+    /* ─── BOUTON DEMAIN ─── */
+    .demain-btn {
+      display: block; width: 100%; margin-top: 8px;
+      background: none; border: 1px solid rgba(255,61,139,0.35); color: var(--dim);
+      font-family: 'Space Mono', monospace; font-size: 12px; letter-spacing: 0.08em;
+      text-transform: uppercase; padding: 18px 16px; cursor: pointer;
+      transition: all 0.2s; text-align: center; line-height: 1.6;
+    }
+    .demain-btn:active { background: rgba(255,61,139,0.1); }
+
+    /* ─── CARD ─── */
+    .train-card {
+      border: 1px solid var(--border); border-left: 3px solid var(--border);
+      margin-bottom: 10px; padding: 14px;
+      animation: rowIn 0.25s ease both; background: transparent; cursor: pointer;
+    }
+    .train-card:active { opacity: 0.8; }
+    .train-card.retard  { border-left-color: var(--red); }
+    .train-card.a-heure { border-left-color: var(--green); }
+    @keyframes rowIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+    .card-top { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 10px; }
+    .times-col { min-width: 70px; }
+    .dep-time { font-family: 'Share Tech Mono', monospace; font-size: 34px; color: var(--text); line-height: 1; }
+    .dep-rt { font-size: 13px; color: var(--red); margin-top: 2px; }
+    .card-direction { flex: 1; font-family: 'Bebas Neue', sans-serif; font-size: 22px; letter-spacing: 0.04em; color: var(--text); line-height: 1.2; padding-top: 4px; }
+
+    .state-badge { font-family: 'Space Mono', monospace; font-size: 11px; padding: 4px 8px; white-space: nowrap; align-self: flex-start; }
+    .state-badge.on-time { background: rgba(61,220,132,0.12); color: var(--green); }
+    .state-badge.late    { background: rgba(255,68,68,0.12);  color: var(--red); }
+    .state-badge.early   { background: rgba(255,61,139,0.12); color: var(--orange); }
+    .state-badge.unknown { color: var(--dim); }
+
+    .card-bottom { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+    .train-num { font-family: 'Share Tech Mono', monospace; font-size: 15px; color: var(--blue); }
+    .train-type { font-size: 10px; color: var(--dim); letter-spacing: 0.12em; text-transform: uppercase; margin-top: 1px; }
+    .sep { width: 1px; height: 28px; background: var(--border); flex-shrink: 0; }
+
+    .arr-block { display: flex; flex-direction: column; gap: 2px; }
+    .arr-label { font-size: 9px; color: var(--dim); letter-spacing: 0.12em; text-transform: uppercase; }
+    .arr-time { font-family: 'Share Tech Mono', monospace; font-size: 22px; color: var(--blue); line-height: 1; }
+    .arr-rt { font-size: 11px; color: var(--red); }
+
+    .duration-badge { font-family: 'Share Tech Mono', monospace; font-size: 14px; color: var(--orange); border: 1px solid rgba(255,61,139,0.35); padding: 3px 8px; }
+
+    .disruption-msg { margin-top: 10px; font-family: 'Space Mono', monospace; font-size: 11px; color: var(--accent2); border-left: 2px solid var(--accent2); padding: 4px 8px; line-height: 1.5; }
+
+    .voir-parcours { font-family: 'Space Mono', monospace; font-size: 10px; color: var(--dim); letter-spacing: 0.08em; text-transform: uppercase; cursor: pointer; }
+
+    .loading-state, .error-state, .empty-state { text-align: center; padding: 48px 16px; }
+    .loading-state .loader { font-family: 'Bebas Neue', sans-serif; font-size: 28px; color: var(--accent); animation: pulse 1.2s ease-in-out infinite; }
+    @keyframes pulse { 0%,100%{opacity:0.4} 50%{opacity:1} }
+    .loading-state p, .error-state p, .empty-state p { font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; margin-top: 10px; color: var(--dim); }
+    .err-msg { font-size: 11px; color: var(--red); margin-top: 8px; word-break: break-all; }
+
+    footer { padding: 16px; border-top: 1px solid var(--border); font-size: 10px; color: var(--dim); letter-spacing: 0.08em; text-transform: uppercase; text-align: center; }
+    .rail-deco { position: fixed; bottom: 0; left: 0; right: 0; height: 2px; background: repeating-linear-gradient(90deg, var(--accent) 0px, var(--accent) 30px, transparent 30px, transparent 50px); opacity: 0.12; pointer-events: none; }
+
+    /* ─── PARCOURS OVERLAY ─── */
+    #parcours-overlay { position: fixed; inset: 0; z-index: 300; background: var(--bg); overflow-y: auto; -webkit-overflow-scrolling: touch; }
+    #parcours-panel { max-width: 900px; margin: 0 auto; padding-bottom: 40px; }
+    #parcours-header { position: sticky; top: env(safe-area-inset-top, 0px); background: var(--bg); border-bottom: 1px solid var(--border); padding: 14px 16px; display: flex; align-items: center; gap: 14px; z-index: 10; }
+    #parcours-back { background: none; border: 1px solid var(--border); color: var(--accent); font-family: 'Space Mono', monospace; font-size: 13px; font-weight: 700; padding: 8px 14px; cursor: pointer; min-height: 44px; white-space: nowrap; transition: all 0.2s; }
+    #parcours-back:active { background: var(--accent); color: var(--bg); }
+    #parcours-title { font-family: 'Bebas Neue', sans-serif; font-size: 22px; letter-spacing: 0.06em; color: var(--accent); line-height: 1.2; }
+    #parcours-content { padding: 20px 16px; }
+
+    .parcours-stop { display: flex; gap: 16px; align-items: flex-start; padding: 10px 0; position: relative; }
+    .parcours-stop::before { content: ''; position: absolute; left: 36px; top: 0; bottom: 0; width: 1px; background: var(--border); }
+    .parcours-stop:first-child::before { top: 50%; }
+    .parcours-stop:last-child::before  { bottom: 50%; }
+    .stop-dot { width: 12px; height: 12px; border-radius: 50%; background: var(--border); border: 2px solid var(--border); flex-shrink: 0; margin-top: 4px; margin-left: 31px; position: relative; z-index: 1; }
+    .stop-dot.highlight { background: var(--accent); border-color: var(--accent); width: 16px; height: 16px; margin-left: 29px; box-shadow: 0 0 8px rgba(245,196,0,0.5); }
+    .stop-dot.skipped { background: transparent; border-color: var(--border); opacity: 0.3; }
+    .stop-info { flex: 1; }
+    .stop-name { font-family: 'Bebas Neue', sans-serif; font-size: 18px; letter-spacing: 0.04em; color: var(--text); line-height: 1.2; }
+    .stop-name.highlight { color: var(--accent); font-size: 20px; }
+    .stop-name.skipped { opacity: 0.35; }
+    .stop-times { display: flex; gap: 12px; margin-top: 3px; }
+    .stop-time-item { font-family: 'Share Tech Mono', monospace; font-size: 16px; color: var(--blue); }
+    .stop-time-item.dim { color: var(--dim); font-size: 13px; }
+    .stop-label { font-size: 9px; color: var(--dim); letter-spacing: 0.1em; text-transform: uppercase; display: block; margin-bottom: 1px; }
+
+    @media (min-width: 640px) {
+      header { padding: 16px 32px; }
+      .site-title { font-size: 44px; }
+      .clock { font-size: 32px; }
+      .tabs { top: calc(env(safe-area-inset-top, 0px) + 73px); }
+      main { padding: 24px 32px; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="safe-area-top"></div>
+
+  <header>
+    <div>
+      <div class="site-title">liO</div>
+      <div class="site-subtitle">Castelsarrasin · Montauban · Temps réel</div>
+    </div>
+    <div class="clock" id="clock">--:--:--</div>
+  </header>
+
+  <nav class="tabs">
+    <button class="tab-btn active" onclick="switchTab(this,'csr-mtb')">CSR → MTB</button>
+    <button class="tab-btn" onclick="switchTab(this,'mtb-csr')">MTB → CSR</button>
+  </nav>
+
+  <main>
+    <!-- CSR → MTB -->
+    <div class="panel active" id="panel-csr-mtb">
+      <div class="status-bar">
+        <div>
+          <div class="route-label"><span>Castelsarrasin</span> → Montauban</div>
+          <div class="last-update" id="update-csr-mtb">—</div>
+        </div>
+        <button class="refresh-btn" id="btn-csr-mtb" onclick="loadDepartures('castelsarrasin','montauban','csr-mtb')">
+          <span class="spin">↻</span> Actualiser
+        </button>
+      </div>
+      <div id="bandeau-csr-mtb"></div>
+      <div id="table-csr-mtb">
+        <div class="loading-state"><div class="loader">Chargement…</div><p>connexion SNCF</p></div>
+      </div>
+    </div>
+
+    <!-- MTB → CSR -->
+    <div class="panel" id="panel-mtb-csr">
+      <div class="status-bar">
+        <div>
+          <div class="route-label"><span>Montauban</span> → Castelsarrasin</div>
+          <div class="last-update" id="update-mtb-csr">—</div>
+        </div>
+        <button class="refresh-btn" id="btn-mtb-csr" onclick="loadDepartures('montauban','castelsarrasin','mtb-csr')">
+          <span class="spin">↻</span> Actualiser
+        </button>
+      </div>
+      <div id="bandeau-mtb-csr"></div>
+      <div id="table-mtb-csr">
+        <div class="loading-state"><div class="loader">—</div><p>Cliquez sur l'onglet</p></div>
+      </div>
+    </div>
+  </main>
+
+  <!-- ─── PANEL PARCOURS ─── -->
+  <div id="parcours-overlay" style="display:none">
+    <div class="safe-area-top"></div>
+    <div id="parcours-panel">
+      <div id="parcours-header">
+        <button id="parcours-back" onclick="hideParcours()">← Retour</button>
+        <div id="parcours-title"></div>
+      </div>
+      <div id="parcours-content">
+        <div class="loading-state"><div class="loader">Chargement…</div><p>parcours du train</p></div>
+      </div>
+    </div>
+  </div>
+
+  <footer>Données : API SNCF · Open Data · Refresh auto 90s · liO uniquement</footer>
+  <div class="rail-deco"></div>
+
+  <script>
+    // ─── Horloge ──────────────────────────────────────────────
+    function updateClock() {
+      const n = new Date();
+      document.getElementById('clock').textContent =
+        [n.getHours(), n.getMinutes(), n.getSeconds()].map(x => String(x).padStart(2,'0')).join(':');
+    }
+    updateClock(); setInterval(updateClock, 1000);
+
+    // ─── État date (null = aujourd'hui, sinon objet Date demain) ──
+    const viewingDate = { 'csr-mtb': null, 'mtb-csr': null };
+
+    // ─── Tabs ─────────────────────────────────────────────────
+    let loadedPanels = new Set();
+    function switchTab(btn, panelId) {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById('panel-' + panelId).classList.add('active');
+      if (!loadedPanels.has(panelId)) {
+        const [f, t] = panelId === 'csr-mtb' ? ['castelsarrasin','montauban'] : ['montauban','castelsarrasin'];
+        loadDepartures(f, t, panelId);
+      }
+    }
+
+    // ─── Helpers date ────────────────────────────────────────
+    function pad(n) { return String(n).padStart(2,'0'); }
+
+    function getDatetimeStr(date, h, m, s) {
+      return `${date.getFullYear()}${pad(date.getMonth()+1)}${pad(date.getDate())}T${pad(h)}${pad(m)}${pad(s||0)}`;
+    }
+
+    function formatDateFr(date) {
+      const jours = ['Dimanche','Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi'];
+      const mois  = ['jan','fév','mar','avr','mai','jun','jul','aoû','sep','oct','nov','déc'];
+      return `${jours[date.getDay()]} ${date.getDate()} ${mois[date.getMonth()]}`;
+    }
+
+    // ─── Chargement ───────────────────────────────────────────
+    async function loadDepartures(from, to, panelId, forceDate) {
+      const container = document.getElementById('table-' + panelId);
+      const btn       = document.getElementById('btn-' + panelId);
+      const bandeau   = document.getElementById('bandeau-' + panelId);
+
+      // Si forceDate est fourni, on bascule en mode "demain"
+      if (forceDate) {
+        viewingDate[panelId] = forceDate;
+      }
+
+      btn.classList.add('loading');
+      container.innerHTML = `<div class="loading-state"><div class="loader">Chargement…</div><p>API SNCF</p></div>`;
+
+      // Construire le datetime selon le mode
+      const targetDate = viewingDate[panelId];
+      let datetime;
+      if (targetDate) {
+        // Mode demain : à partir de 05h00
+        datetime = getDatetimeStr(targetDate, 5, 0, 0);
+        // Afficher le bandeau date
+        bandeau.innerHTML = `
+          <div class="date-bandeau">
+            <div>
+              <div class="date-bandeau-label">Horaires du</div>
+              <div class="date-bandeau-value">${formatDateFr(targetDate)}</div>
+            </div>
+            <button class="date-bandeau-back" onclick="backToToday('${from}','${to}','${panelId}')">← Aujourd'hui</button>
+          </div>`;
+      } else {
+        // Mode normal : à partir de maintenant
+        const now = new Date();
+        datetime = getDatetimeStr(now, now.getHours(), now.getMinutes(), now.getSeconds());
+        bandeau.innerHTML = '';
+      }
+
+      try {
+        const resp = await fetch(`/.netlify/functions/sncf?from=${from}&to=${to}&datetime=${datetime}`);
+        const data = await resp.json();
+        if (!resp.ok || data.error) throw new Error(data.error || `HTTP ${resp.status}`);
+        renderCards(data.departures, panelId, from, to, targetDate);
+        loadedPanels.add(panelId);
+        const n = new Date();
+        document.getElementById('update-' + panelId).textContent =
+          `Mis à jour ${pad(n.getHours())}:${pad(n.getMinutes())}`;
+      } catch(err) {
+        container.innerHTML = `<div class="error-state"><p>Erreur</p><div class="err-msg">${err.message}</div></div>`;
+      } finally {
+        btn.classList.remove('loading');
+      }
+    }
+
+    function backToToday(from, to, panelId) {
+      viewingDate[panelId] = null;
+      loadedPanels.delete(panelId); // forcer le rechargement
+      loadDepartures(from, to, panelId);
+    }
+
+    function loadDemain(from, to, panelId) {
+      const demain = new Date();
+      demain.setDate(demain.getDate() + 1);
+      loadDepartures(from, to, panelId, demain);
+    }
+
+    // ─── Rendu cartes ─────────────────────────────────────────
+    function renderCards(departures, panelId, from, to, targetDate) {
+      const container = document.getElementById('table-' + panelId);
+      if (!window._lastDeps) window._lastDeps = {};
+      window._lastDeps[panelId] = { deps: departures, from, to, targetDate };
+
+      if (!departures || departures.length === 0) {
+        container.innerHTML = `<div class="empty-state"><p>Aucun train trouvé</p></div>`; return;
+      }
+
+      // Filtre type liO uniquement
+      function isLio(d) {
+        const raw = (d._raw_mode || '').toLowerCase();
+        const cm  = (d.commercial_mode || '').toLowerCase();
+        const nw  = (d.network || '').toLowerCase();
+        const all = raw + ' ' + cm + ' ' + nw;
+        if (all.includes('tgv') || all.includes('inoui') || all.includes('ouigo') || all.includes('lyria')) return false;
+        if (all.includes('intercit') || all.includes('grandes lignes') || all.includes('corail')) return false;
+        const num = parseInt(d.train || '0', 10);
+        if (num >= 3000 && num <= 6999 && !all.includes('ter') && !all.includes('lio') && !all.includes('régional') && !all.includes('regional')) return false;
+        return true;
+      }
+
+      let filtered = departures.filter(d => {
+        // Filtre temporel seulement en mode aujourd'hui
+        if (!targetDate && d.scheduled) {
+          const now = new Date();
+          const nowMin = now.getHours() * 60 + now.getMinutes() - 2;
+          const [h,m] = d.scheduled.split(':').map(Number);
+          if ((h * 60 + m) < nowMin) return false;
+        }
+        return isLio(d);
+      });
+
+      // Plus de trains aujourd'hui → proposer demain
+      if (filtered.length === 0 && !targetDate) {
+        container.innerHTML = `
+          <div class="empty-state">
+            <p>Plus de trains aujourd'hui</p>
+          </div>
+          <button class="demain-btn" onclick="loadDemain('${from}','${to}','${panelId}')">
+            Premiers trains de demain →
+          </button>`;
+        return;
+      }
+
+      if (filtered.length === 0) {
+        container.innerHTML = `<div class="empty-state"><p>Aucun train liO</p></div>`; return;
+      }
+
+      function calcDur(dep, arr) {
+        if (!dep || !arr) return null;
+        const [dh,dm] = dep.split(':').map(Number);
+        const [ah,am] = arr.split(':').map(Number);
+        let d = dh*60+dm, a = ah*60+am;
+        if (a < d) a += 1440;
+        const dur = a - d;
+        return (dur > 0 && dur < 300) ? dur : null;
+      }
+
+      let html = '';
+      filtered.forEach((d, i) => {
+        let stClass = 'unknown', stLabel = '—';
+        if (d.scheduled) {
+          if (d.delay_min === 0)    { stClass = 'on-time'; stLabel = "✓ À l'heure"; }
+          else if (d.delay_min > 0) { stClass = 'late';    stLabel = `+${d.delay_min} min`; }
+          else                      { stClass = 'early';   stLabel = `${d.delay_min} min`; }
+        }
+
+        // En mode demain, pas d'info retard dispo → badge neutre
+        if (targetDate) { stClass = 'unknown'; stLabel = '—'; }
+
+        const cardClass = (!targetDate && d.delay_min > 0) ? 'retard' : (!targetDate && d.scheduled ? 'a-heure' : '');
+        const depRt = (!targetDate && d.realtime && d.realtime !== d.scheduled) ? `<div class="dep-rt">→ ${d.realtime}</div>` : '';
+        const dur = calcDur(d.scheduled, d.arr_scheduled);
+        const arrBlock = d.arr_scheduled ? `
+          <div class="arr-block">
+            <span class="arr-label">arrivée</span>
+            <span class="arr-time">${d.arr_scheduled}</span>
+            ${!targetDate && d.arr_realtime && d.arr_realtime !== d.arr_scheduled ? `<span class="arr-rt">→ ${d.arr_realtime}</span>` : ''}
+          </div>` : '';
+        const durBadge = dur ? `<span class="duration-badge">${dur} min</span>` : '';
+        const modeLabel = d.commercial_mode || d.network || '';
+        const disrupt = (!targetDate && d.disruptions && d.disruptions.length) ? `<div class="disruption-msg">⚠ ${d.disruptions.join(' · ')}</div>` : '';
+
+        html += `
+          <div class="train-card ${cardClass}" style="animation-delay:${i*25}ms" onclick="showParcours('${d.train}','${d.scheduled || ''}','${d.direction || ''}','${modeLabel}')">
+            <div class="card-top">
+              <div class="times-col">
+                <div class="dep-time">${d.scheduled || '?'}</div>
+                ${depRt}
+              </div>
+              <div class="card-direction">${d.direction || '—'}</div>
+              <span class="state-badge ${stClass}">${stLabel}</span>
+            </div>
+            <div class="card-bottom">
+              <div>
+                <div class="train-num">${d.train}</div>
+                <div class="train-type">${modeLabel}</div>
+              </div>
+              ${arrBlock ? `<div class="sep"></div>${arrBlock}` : ''}
+              ${durBadge ? `<div class="sep"></div>${durBadge}` : ''}
+              <div class="sep"></div><span class="voir-parcours">▸ parcours</span>
+            </div>
+            ${disrupt}
+          </div>`;
+      });
+
+      container.innerHTML = html;
+    }
+
+    // ─── Parcours ─────────────────────────────────────────────
+    async function showParcours(trainNum, depTime, direction, modeLabel) {
+      const overlay = document.getElementById('parcours-overlay');
+      const content = document.getElementById('parcours-content');
+      const title   = document.getElementById('parcours-title');
+
+      title.innerHTML = `<div>${trainNum} <span style="font-size:14px;color:var(--dim);font-family:'Space Mono',monospace">${modeLabel}</span></div><div style="font-size:14px;color:var(--text);font-family:'Space Mono',monospace">${direction}</div>`;
+      content.innerHTML = `<div class="loading-state"><div class="loader">Chargement…</div><p>parcours du train</p></div>`;
+      overlay.style.display = 'block';
+      document.body.style.overflow = 'hidden';
+
+      try {
+        const resp = await fetch(`/.netlify/functions/parcours?train_num=${encodeURIComponent(trainNum)}`);
+        const data = await resp.json();
+        if (!resp.ok || data.error) throw new Error(data.error || `HTTP ${resp.status}`);
+        renderParcours(data, depTime);
+      } catch(err) {
+        content.innerHTML = `<div class="error-state"><p>Erreur</p><div class="err-msg">${err.message}</div></div>`;
+      }
+    }
+
+    function hideParcours() {
+      document.getElementById('parcours-overlay').style.display = 'none';
+      document.body.style.overflow = '';
+    }
+
+    function renderParcours(data, depTime) {
+      const content = document.getElementById('parcours-content');
+      const arrets = data.arrets || [];
+
+      if (arrets.length === 0) {
+        content.innerHTML = `<div class="empty-state"><p>Aucun arrêt trouvé</p></div>`; return;
+      }
+
+      let html = '';
+      arrets.forEach((a) => {
+        if (a.skipped) return;
+        const nameUp = (a.name || '').toUpperCase();
+        const isHighlight = nameUp.includes('CASTELSARRASIN') || nameUp.includes('MONTAUBAN');
+        const dotClass  = isHighlight ? 'highlight' : '';
+        const nameClass = isHighlight ? 'highlight' : '';
+
+        let timesHtml = '';
+        if (a.arr && a.dep && a.arr !== a.dep) {
+          timesHtml = `<div class="stop-times">
+            <div><span class="stop-label">arr</span><span class="stop-time-item dim">${a.arr}</span></div>
+            <div><span class="stop-label">dép</span><span class="stop-time-item">${a.dep}</span></div>
+          </div>`;
+        } else {
+          const t = a.dep || a.arr;
+          if (t) timesHtml = `<div class="stop-times"><span class="stop-time-item">${t}</span></div>`;
+        }
+
+        html += `
+          <div class="parcours-stop">
+            <div class="stop-dot ${dotClass}"></div>
+            <div class="stop-info">
+              <div class="stop-name ${nameClass}">${a.name}</div>
+              ${timesHtml}
+            </div>
+          </div>`;
+      });
+
+      content.innerHTML = html || `<div class="empty-state"><p>Aucun arrêt à afficher</p></div>`;
+      setTimeout(() => {
+        const stops = content.querySelectorAll('.stop-name.highlight');
+        if (stops.length > 0) stops[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 100);
+    }
+
+    // ─── Init ─────────────────────────────────────────────────
+    loadDepartures('castelsarrasin', 'montauban', 'csr-mtb');
+    setInterval(() => {
+      const ap = document.querySelector('.panel.active');
+      if (!ap) return;
+      const pid = ap.id.replace('panel-', '');
+      // Pas de refresh auto si on regarde demain
+      if (viewingDate[pid]) return;
+      const [f,t] = pid === 'csr-mtb' ? ['castelsarrasin','montauban'] : ['montauban','castelsarrasin'];
+      loadDepartures(f, t, pid);
+    }, 90000);
+  </script>
+</body>
+</html>
