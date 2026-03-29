@@ -358,7 +358,7 @@
       }
 
       try {
-        const resp = await fetch(`/.netlify/functions/sncf?from=${from}&to=${to}&datetime=${datetime}`);
+        const resp = await fetch(`/api/sncf?from=${from}&to=${to}&datetime=${datetime}`);
         const data = await resp.json();
         if (!resp.ok || data.error) throw new Error(data.error || `HTTP ${resp.status}`);
         renderCards(data.departures, panelId, from, to, targetDate);
@@ -508,7 +508,7 @@
       document.body.style.overflow = 'hidden';
 
       try {
-        const resp = await fetch(`/.netlify/functions/parcours?train_num=${encodeURIComponent(trainNum)}`);
+        const resp = await fetch(`/api/parcours?train_num=${encodeURIComponent(trainNum)}`);
         const data = await resp.json();
         if (!resp.ok || data.error) throw new Error(data.error || `HTTP ${resp.status}`);
         renderParcours(data, depTime);
